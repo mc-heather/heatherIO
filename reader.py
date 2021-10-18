@@ -8,9 +8,9 @@ types = { # TODO: fix this fucking system, lord jesus christ.
 
 def handle_packet(packet_data: bytes, structs: tuple) -> list:
     """
-    Function to handle packet data sent by the client, alongside the respetive type to read.
+    Function to handle packet data sent by the client, alongside the respective type(s) to read them as.
 
-    Note: This function and the Reader class are massively subject to change, this is just as basis.
+    Note: This function and the Reader class are massively subject to change, this is just a basis.
     """
     
     reader = Reader(packet_data)
