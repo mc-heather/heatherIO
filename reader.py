@@ -2,8 +2,12 @@ from dataclasses import dataclass
 
 from constants.datatypes import dataType
 
+import struct
+
 types = { # TODO: fix this fucking system, lord jesus christ.
-    dataType.VAR_INT: lambda reader: reader.read_var_int()
+    dataType.VAR_INT: lambda reader: reader.read_var_int(),
+    dataType.VAR_LONG: lambda reader: reader.read_var_long(),
+    dataType.BOOLEAN: lambda reader: reader.read_bool()
 }
 
 def handle_packet(packet_data: bytes, structs: tuple) -> list:
@@ -36,20 +40,53 @@ class Reader:
 
         return return_data
 
-    def read_int(self, size: int, signed: bool) -> int:
+    def _read_int(self, size: int, signed: bool) -> int:
         return int.from_bytes(
             self.read(size),
             "little",
             signed=signed
         )
 
-    def read_signed_int8(self) -> int: return self.read_int(1, True)
+    def read_bool(self) -> bool: # thanks for the simple implementation
+        encoded = self.read(1)
+
+        return encoded == b"0x01"
+
+    def read_byte(self) -> int: return self._read_int(1, True)
+    def read_unsigned_byte(self) -> int: return self._read_int(1, False)
+    def read_short(self) -> int: return self._read_int(2, True)
+    def read_unsigned_short(self) -> int: return self._read_int(2, False)
+    def read_int(self) -> int: return self._read_int(4, True)
+    def read_long(self) -> int: return self._read_int(8, True)
+    def read_float(self) -> float: return struct.unpack('f', self.read(4))
+    def read_double(self) -> float: return struct.unpack('d', self.read(8))
+
+    def read_string(self) -> str:
+        if self.read_var_int() != 0x0b: return ""
+
+        return self.read(self.read_var_int()).decode()
+
+    def read_chat(self) -> dict:
+        raw_format = self.read_string()
+
+        # TODO: experiment and make this work (chat is fucking json?)
+
+        return NotImplemented
+
+    def read_identifier(self) -> str:
+        raw_format = self.read_string()
+
+        # TODO: make this work (add handlers for all identifiers!)
+
+        return NotImplemented
 
     def read_var_int(self) -> int:
         value = offset = 0
 
         while True:
-            body = self.read_signed_int8()
+            assert offset < 35, "VarInt is too big!"
+
+            body = self.read_byte()
 
             value |= (body & 0b01111111) << offset
             if (body & 0b10000000) == 0: break
@@ -58,4 +95,39 @@ class Reader:
 
         return value
 
-    
+    def read_var_long(self) -> int: # god i love how practically useless this is
+        value = offset = 0
+
+        while True:
+            assert offset < 70, "VarLong is too big!"
+
+            body = self.read_byte()
+
+            value |= (body & 0b01111111) << offset
+            if (body & 0b10000000) == 0: break
+
+            offset += 7
+
+        return value
+
+    def read_entity_metadata(self): # type?
+        index = self.read_unsigned_byte()
+        if index == 0xff: return # end of metadata
+
+        type = self.read_var_int() # TODO: type -> function
+        # value = get_value_of_type(type) TODO
+
+        return NotImplemented
+
+    def read_slot(self): # type?
+        if not self.read_bool(): return
+
+        item_id = self.read_var_int()
+        item_count = self.read_byte()
+        nbt = self.read_nbt()
+        if nbt == 0: return # ?
+
+        return NotImplemented # handle it here????? idfk man#
+
+    def read_nbt(self): # type?
+        ...
