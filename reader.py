@@ -47,11 +47,7 @@ class Reader:
             signed=signed
         )
 
-    def read_bool(self) -> bool: # thanks for the simple implementation
-        encoded = self.read(1)
-
-        return encoded == b"0x01"
-
+    def read_bool(self) -> bool: return self.read(1) == b"0x01" # thanks for the simple implementation
     def read_byte(self) -> int: return self._read_int(1, True)
     def read_unsigned_byte(self) -> int: return self._read_int(1, False)
     def read_short(self) -> int: return self._read_int(2, True)
